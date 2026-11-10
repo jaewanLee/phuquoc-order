@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>푸꾸옥 가족 주문</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: one narrow column — a strip of meal 'tickets' up top, the picked meal's menu or kitchen ticket below; sticky action bar */
+:root{
+  --bg:#FBFAF6; --card:#FFFFFF; --ink:#1D2320; --ink-2:#56605B; --ink-3:#8B948F;
+  --line:#E6E3DA; --herb:#1F6B4F; --herb-soft:#E3F0E9; --chili:#D2361E; --chili-soft:#FBE6E1;
+  --crust:#C8862F; --crust-soft:#F6EBD9;
+  --f-display:"Be Vietnam Pro","Noto Sans KR",system-ui,sans-serif;
+  --f-body:"Noto Sans KR","Be Vietnam Pro",system-ui,-apple-system,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --card:#1A201D; --ink:#EEF1EE; --ink-2:#B3BCB7; --ink-3:#7F8984;
+  --line:#2C3430; --herb:#5FC497; --herb-soft:#1C3329; --chili:#FF7A5F; --chili-soft:#3A201B;
+  --crust:#E3A653; --crust-soft:#33291B; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#121614; --card:#1A201D; --ink:#EEF1EE; --ink-2:#B3BCB7; --ink-3:#7F8984;
+  --line:#2C3430; --herb:#5FC497; --herb-soft:#1C3329; --chili:#FF7A5F; --chili-soft:#3A201B;
+  --crust:#E3A653; --crust-soft:#33291B; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-size:15px;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+.wrap{max-width:560px;margin:0 auto}
+header{padding-block:22px 10px}
+.kicker{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--crust)}
+h1{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1.15;margin:4px 0 6px;text-wrap:balance}
+.sub{color:var(--ink-2);font-size:13px;margin:0}
+.status{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--ink-2);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.status.live i{background:var(--herb)} .status.local i{background:var(--crust)}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-block:8px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.tabs button{font:inherit;font-weight:700;border:1px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:12px;padding:10px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs .n{font-family:var(--f-display);margin-left:4px;opacity:.75}
+
+section{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+label.lab,.lab{font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:.04em}
+.namebox{display:flex;flex-direction:column;gap:6px}
+input[type=text],textarea{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;width:100%}
+input[type=text]{font-size:18px;font-weight:700}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--herb);outline-offset:2px}
+.hintline{font-size:12px;color:var(--ink-3)}
+
+h2{font-family:var(--f-display);font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin:10px 0 0;display:flex;align-items:baseline;gap:8px}
+h2 small{font-family:var(--f-body);font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink-3);font-size:12px}
+.list{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item.on{background:var(--herb-soft)}
+.item.pic{grid-template-columns:60px 1fr auto}
+.item .th{width:60px;height:60px;border-radius:10px;object-fit:cover;display:block}
+.item .t{min-width:0}
+.item .ko{font-weight:700;font-size:15px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.item .no{font-family:var(--f-display);font-weight:800;color:var(--crust);font-size:13px}
+.item .vi{font-family:var(--f-display);font-size:12.5px;color:var(--ink-2);font-weight:500}
+.item .ds{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.item .pr{font-family:var(--f-display);font-weight:700;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.tag{font-size:10.5px;font-weight:800;color:var(--chili);background:var(--chili-soft);border-radius:6px;padding:1px 6px}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-size:20px;font-weight:700;cursor:pointer;line-height:1}
+.step button.plus{background:var(--herb);border-color:var(--herb);color:var(--card)}
+.step button:disabled{opacity:.35;cursor:default}
+.step output{min-width:26px;text-align:center;font-family:var(--f-display);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.who{display:flex;flex-wrap:wrap;gap:8px}
+.who button{font:inherit;font-weight:800;font-size:15px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.who button[aria-pressed="true"]{background:var(--herb);border-color:var(--herb);color:var(--card)}
+.who button .ok{font-size:11px;font-weight:800;color:var(--herb);background:var(--herb-soft);border-radius:6px;padding:1px 5px}
+.who button[aria-pressed="true"] .ok{color:var(--herb);background:var(--card)}
+.who .other{display:flex;gap:6px;flex:1 1 180px;min-width:0}
+.who .other input{font-size:15px;font-weight:600;padding:9px 12px}
+.who .other button{white-space:nowrap}
+.cur{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:4;background:var(--bg);padding-block:6px;display:flex;flex-direction:column;gap:6px}
+.cur .row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.cur .row button{font:inherit;font-weight:700;font-size:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:999px;padding:7px 13px;cursor:pointer;white-space:nowrap}
+.cur .row button[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.cur .row button small{font-family:var(--f-display);margin-left:4px;opacity:.75}
+.editing{font-size:14px;font-weight:700;color:var(--ink)} .editing b{color:var(--herb)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:8px 12px;font-weight:700;font-size:13.5px;cursor:pointer;user-select:none}
+.chip input{accent-color:var(--herb);width:16px;height:16px;margin:0}
+.chip small{font-family:var(--f-display);font-weight:500;color:var(--ink-3);font-size:11.5px}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar .in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.bar .sum{flex:1;min-width:0;font-size:13px;color:var(--ink-2)}
+.bar .sum b{display:block;font-family:var(--f-display);font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums}
+.btn{font:inherit;font-weight:800;border:0;border-radius:12px;padding:13px 18px;cursor:pointer;background:var(--chili);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.btn.small{padding:8px 12px;font-size:13px}
+
+.notice{border-radius:12px;padding:12px 14px;font-size:13.5px;background:var(--herb-soft);color:var(--ink)}
+.notice.warn{background:var(--crust-soft)}
+.sendbox{display:flex;flex-direction:column;gap:8px;background:var(--crust-soft);border-radius:var(--r);padding:14px}
+.sendbox pre{margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--f-body);font-size:13px;background:var(--card);border-radius:10px;padding:10px 12px;max-height:180px;overflow:auto}
+
+/* summary tab */
+.ticket{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.ticket .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ticket .total{font-family:var(--f-display);font-weight:800;font-size:24px;font-variant-numeric:tabular-nums}
+table.tot{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.tot td{padding:7px 0;border-top:1px dashed var(--line);vertical-align:top}
+table.tot td.q{font-family:var(--f-display);font-weight:800;font-size:17px;width:44px;color:var(--herb)}
+table.tot td.p{text-align:right;font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--ink-2);white-space:nowrap}
+table.tot .vi{font-family:var(--f-display);font-size:12.5px;color:var(--ink-2)}
+table.tot .op{font-size:12px;color:var(--chili);font-weight:700}
+.vn{background:var(--ink);color:var(--bg);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.vn .lab{color:var(--bg);opacity:.7}
+.vn pre{margin:0;white-space:pre-wrap;font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.6}
+.vn .row{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;font-weight:700;border:0;background:var(--card);color:var(--ink-2);padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--herb);color:var(--card)}
+.vn .seg{border-color:transparent}
+.people{display:flex;flex-direction:column;gap:8px}
+.person{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.person .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.person .nm{font-weight:800;font-size:15px}
+.person .src{font-size:11px;font-weight:700;color:var(--crust);margin-left:6px}
+.person .it{font-size:13.5px;color:var(--ink-2)}
+.person .op{font-size:12.5px;color:var(--chili);font-weight:700}
+.person .acts{display:flex;gap:6px}
+.person .acts button{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:8px;padding:5px 9px;cursor:pointer}
+.person .acts button.del{color:var(--chili)}
+.empty{color:var(--ink-3);text-align:center;padding:26px 10px;background:var(--card);border:1px dashed var(--line);border-radius:var(--r);font-size:14px}
+details{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+details summary{cursor:pointer;font-weight:700;font-size:14px}
+details[open] summary{margin-bottom:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:9;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:700;font-size:13.5px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.foot{font-size:11.5px;color:var(--ink-3);text-align:center;margin-top:18px}
+@media (prefers-reduced-motion:no-preference){.item,.chip,.step button{transition:background .15s,border-color .15s}}
+
+/* meal strip */
+.sess{display:flex;gap:8px;overflow-x:auto;padding-block:4px 10px;scroll-snap-type:x proximity}
+.sc{flex:0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:132px;max-width:180px;text-align:left;font:inherit;cursor:pointer;
+  background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;position:relative}
+.sc::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;border-bottom:2px dashed transparent}
+.sc .d{font-family:var(--f-display);font-weight:800;font-size:14px}
+.sc .r{font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sc .m{font-size:11.5px;color:var(--ink-3)}
+.sc.on{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.sc.on .r,.sc.on .m{color:var(--bg);opacity:.8}
+.sc.closed:not(.on){opacity:.6}
+.sc.act .m{color:var(--herb);font-weight:700}
+.sc.on.act .m{color:var(--bg)}
+.sc.add{justify-content:center;align-items:center;border-style:dashed;color:var(--herb);min-width:110px}
+.sc.add .plus{font-family:var(--f-display);font-size:20px;font-weight:800;line-height:1}
+.sc.add .r{color:var(--herb)}
+.newsess{background:var(--card);border:1.5px solid var(--herb);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+.nsrow{display:flex;flex-direction:column;gap:6px}
+.nsbtns{display:flex;gap:8px}
+input[type=date],select{font:inherit;font-weight:700;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;width:100%}
+.shead{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:var(--r);background:var(--crust-soft)}
+.shead .when{font-size:12.5px;font-weight:700;color:var(--ink-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.shead .st{font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px}
+.shead .st.open{color:var(--herb);background:var(--herb-soft)} .shead .st.closed{color:var(--chili);background:var(--chili-soft)}
+.shead .rn{font-family:var(--f-display);font-weight:800;font-size:21px;line-height:1.2}
+.shead .rn span{font-size:13px;font-weight:600;color:var(--ink-2);margin-left:4px}
+.shead .pl{font-size:12.5px;color:var(--ink-2)} .shead a{color:var(--herb);font-weight:700}
+.viewonly{margin-top:8px}
+.sctl{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.who button:disabled{opacity:.5;cursor:default}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="kicker">Phú Quốc · 가족 주문</div>
+    <h1>푸꾸옥 가족 주문</h1>
+    <p class="sub">식당 메뉴를 둘러보고, '주문 받는 중'인 식당에서 이름을 누른 뒤 메뉴를 담으면 돼요.</p>
+    <div class="status" id="status"><i></i><span>연결 확인 중…</span></div>
+  </header>
+
+  <div class="sess" id="sess" role="list" aria-label="식당"></div>
+
+
+  <div class="shead" id="shead"></div>
+
+  <div class="viewonly notice warn" id="viewonly" hidden></div>
+
+  <div class="tabs" id="tabs" role="tablist">
+    <button role="tab" id="tab-order" aria-selected="true" aria-controls="p-order">메뉴 고르기</button>
+    <button role="tab" id="tab-sum" aria-selected="false" aria-controls="p-sum">주문서<span class="n" id="tabn"></span></button>
+  </div>
+
+  <section id="p-order" role="tabpanel" aria-labelledby="tab-order">
+    <div id="after"></div>
+    <div id="closedmsg" class="notice warn" hidden>마감된 주문이에요. 더 받으려면 주문서 탭에서 다시 열어 주세요.</div>
+    <div class="namebox" id="whobox">
+      <span class="lab">누구 거예요? <span style="font-weight:500">여러 명 고를 수 있어요</span></span>
+      <div class="who" id="who"></div>
+      <div class="hintline">이미 담은 사람을 누르면 고른 메뉴를 불러와서 고칠 수 있어요.</div>
+    </div>
+    <div class="cur" id="cur" hidden></div>
+    <div id="formarea"></div>
+  </section>
+
+  <section id="p-sum" role="tabpanel" aria-labelledby="tab-sum" hidden>
+    <div id="sumbody"></div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="sum" id="barsum"></div>
+    <button class="btn" id="submit" disabled>담기</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- restaurants (menus come from each shop's menu board) ---------- */
+const SB_URL='https://ihjwvonanqaivaplvxud.supabase.co';
+const SB_KEY='sb_publishable_Ks9bKCUPySXZaiZydXpJCA_VJDFIaw2';
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});
+let RESTOS=[],IMGS={},REST={},ACTIVE=null;
+const OPT={id:'nc',ko:'고수 빼기',vi:'không rau mùi'};
+const MEALS=[{id:'b',ko:'아침'},{id:'l',ko:'점심'},{id:'d',ko:'저녁'}];
+const HOWS=[{id:'go',ko:'포장',vi:'Mang về.'},{id:'del',ko:'배달',vi:''},{id:'here',ko:'매장',vi:'Ăn ở đây.'}];
+const PEOPLE=['재완','상지','지윤','경구','재현','지민','예찬'];
+const WD=['일','월','화','수','목','금','토'];
+
+/* ---------- pure helpers ---------- */
+const vnd=n=>n.toLocaleString('vi-VN')+'đ';
+const won=n=>n.toLocaleString('ko-KR');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hex=t=>Array.from(new TextEncoder().encode(String(t).trim())).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,150);
+const todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const sessId=(date,meal,rest)=>`${date.replace(/-/g,'')}-${meal}-${rest}`;
+function dateLabel(iso){const [y,m,d]=iso.split('-').map(Number);const w=new Date(y,m-1,d).getDay();return `${m}/${d} ${WD[w]}`;}
+const mealKo=id=>(MEALS.find(m=>m.id===id)||MEALS[1]).ko;
+const howOf=id=>HOWS.find(h=>h.id===id)||HOWS[0];
+function cleanSession(s){
+  if(!s||typeof s!=='object'||!REST[s.rest]) return null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s.date||'')) return null;
+  const meal=MEALS.some(m=>m.id===s.meal)?s.meal:'l';
+  return {id:sessId(s.date,meal,s.rest),date:s.date,meal,rest:s.rest,how:howOf(s.how).id,open:s.open!==false,at:+s.at||Date.now()};
+}
+function cleanItems(rest,items){const by=REST[rest].by,o={};for(const[k,v] of Object.entries(items||{})){const n=Math.min(20,Math.max(0,Math.floor(+v||0)));if(by[k]&&n>0)o[k]=n;}return o;}
+function cleanOrder(o){
+  if(!o||typeof o!=='object') return null;
+  const s=String(o.session||''); const rest=s.split('-')[2]; if(!REST[rest]) return null;
+  const name=String(o.name||'').trim().slice(0,20); if(!name) return null;
+  const items=cleanItems(rest,o.items); if(!Object.keys(items).length) return null;
+  return {session:s,name,items,nc:!!o.nc,at:+o.at||Date.now()};
+}
+const orderId=o=>o.session+'_'+hex(o.name);
+const restOfSess=sid=>REST[sid.split('-')[2]];
+const priceOf=(rest,items)=>Object.entries(items).reduce((s,[k,v])=>s+rest.by[k].p*v,0);
+function totals(rest,orders){
+  const q={},nc={};
+  for(const o of orders) for(const[k,v] of Object.entries(o.items)){q[k]=(q[k]||0)+v;if(o.nc&&rest.groups.find(g=>g.id===rest.by[k].g)?.opt)nc[k]=(nc[k]||0)+v;}
+  return {q,nc};
+}
+function vnTicket(sess,orders){
+  const rest=REST[sess.rest];const {q,nc}=totals(rest,orders);
+  const ids=rest.items.map(m=>m.id).filter(id=>q[id]); if(!ids.length) return '';
+  const L=['Cho tôi:'];
+  for(const id of ids){const m=rest.by[id];L.push(`${q[id]} ${m.cl} ${m.vi}`+(nc[id]?` (${nc[id]} ${m.cl} ${OPT.vi})`:''));}
+  const h=howOf(sess.how); if(h.vi) L.push(h.vi);
+  L.push('Cảm ơn!'); return L.join('\n');
+}
+/* ---------- state ---------- */
+const LS={orders:'fo-orders-v1',sess:'fo-sessions-v1',cur:'fo-cur-v1',extra:'fo-extra-v1'};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const S={
+  shared:{orders:[],sessions:[]},
+  view:null, extra:(lsGet(LS.extra,[])||[]).filter(n=>typeof n==='string').slice(0,10),
+  sel:[],cur:null,drafts:{},mode:'pending',canWrite:false,db:null,delAsk:null,lastSent:null,
+};
+function sessions(){return ACTIVE?[{...ACTIVE,src:'default'}]:[];}
+const curSess=()=>ACTIVE?{...ACTIVE,src:'default'}:null;
+const viewRest=()=>REST[S.view]||REST[ACTIVE?ACTIVE.rest:RESTOS[0].id];
+const ordering=()=>!!ACTIVE&&viewRest().id===ACTIVE.rest;
+function orders(sid){
+  const m=new Map();
+  for(const o of S.shared.orders) if(o.session===sid) m.set(orderId(o),{...o,src:'shared'});
+  return [...m.values()].sort((a,b)=>a.at-b.at);
+}
+const existing=(sid,name)=>orders(sid).find(o=>o.name===name.trim());
+const draft=()=>S.cur?S.drafts[S.cur]:null;
+
+/* ---------- writes ---------- */
+async function saveOrder(o){
+  const row={id:orderId(o),session:o.session,name:o.name,items:o.items,nc:o.nc,at:new Date(o.at).toISOString(),updated_at:new Date().toISOString()};
+  for(let i=0;i<2;i++){const {error}=await sb.from('orders').upsert(row);if(!error){upsertLocal(o);return 'shared';}if(i===0)await new Promise(r=>setTimeout(r,500+Math.random()*500));else{console.error(error);}}
+  return 'fail';
+}
+async function deleteOrder(o){
+  const {error}=await sb.from('orders').delete().eq('id',orderId(o));
+  if(error){toast('지우지 못했어요. 잠시 뒤 다시 눌러 주세요.');return;}
+  S.shared.orders=S.shared.orders.filter(x=>orderId(x)!==orderId(o));renderAll();
+}
+function upsertLocal(o){S.shared.orders=S.shared.orders.filter(x=>orderId(x)!==orderId(o)).concat([o]);}
+
+/* ---------- session strip + header ---------- */
+const $=id=>document.getElementById(id);
+function renderSess(){
+  const v=viewRest();
+  $('sess').innerHTML=RESTOS.map(r=>{const act=ACTIVE&&ACTIVE.rest===r.id;const n=act?orders(ACTIVE.id).length:0;
+    return `<button type="button" role="listitem" class="sc${r.id===v.id?' on':''}${act?' act':''}" data-rest="${r.id}">
+      <span class="r">${esc(r.name)}</span><span class="m">${act?`주문 받는 중 · ${dateLabel(ACTIVE.date)} ${mealKo(ACTIVE.meal)}${n?' · '+n+'명':''}`:'메뉴 보기'}</span></button>`;}).join('');
+}
+function renderHead(){
+  const r=viewRest();const act=ordering();
+  $('shead').innerHTML=`<div class="when">${act?`${dateLabel(ACTIVE.date)} ${mealKo(ACTIVE.meal)} · ${howOf(ACTIVE.how).ko}<span class="st ${ACTIVE.open?'open':'closed'}">${ACTIVE.open?'받는 중':'마감'}</span>`:'<span class="st closed">메뉴만 보기</span>'}</div>
+    <div class="rn">${esc(r.name)} <span>${esc(r.vi)}</span></div>
+    <div class="pl">${esc(r.place)} · <a href="${r.map}" target="_blank" rel="noopener">지도</a></div>`;
+  $('foot').textContent=r.note||'';
+  $('viewonly').hidden=act;
+  if(!act) $('viewonly').innerHTML=ACTIVE?`지금은 메뉴만 볼 수 있어요. 주문은 <b>${esc(REST[ACTIVE.rest].name)}</b>에서 받고 있어요.`:'지금은 받는 주문이 없어요. 메뉴만 볼 수 있어요.';
+  $('tabs').hidden=!act;$('whobox').hidden=!act;$('after').hidden=!act;
+  if(!act){$('p-order').hidden=false;$('p-sum').hidden=true;$('bar').hidden=true;$('cur').hidden=true;}
+  else if($('p-sum').hidden) $('bar').hidden=false;
+}
+$('sess').addEventListener('click',e=>{const b=e.target.closest('button[data-rest]');if(!b)return;S.view=b.dataset.rest;S.sel=[];S.cur=null;S.drafts={};S.lastSent=null;S.delAsk=null;
+  if(ordering()) showTab('order');renderAll();renderOrder();});
+
+/* ---------- order tab ---------- */
+function itemRow(rest,m,locked){
+  const d=draft();const n=d?(d.items[m.id]||0):0;const off=locked||!d;
+  return `<div class="item${n?' on':''}${m.img?' pic':''}" data-id="${m.id}">${m.img&&IMGS[m.img]?`<img class="th" alt="" src="data:image/webp;base64,${IMGS[m.img]}">`:''}
+    <div class="t"><div class="ko">${m.no?`<span class="no">${m.no}</span>`:''}${esc(m.ko)}${m.tag?`<span class="tag">${esc(m.tag)}</span>`:''}</div>
+      <div class="vi">${esc(m.vi)} · <span class="pr">${vnd(m.p)}</span></div>${m.ds?`<div class="ds">${esc(m.ds)}</div>`:''}</div>
+    ${ordering()?`<div class="step"><button type="button" class="minus" aria-label="${esc(m.ko)} 빼기" ${n&&!off?'':'disabled'}>−</button><output aria-live="polite">${n}</output><button type="button" class="plus" aria-label="${esc(m.ko)} 더하기" ${off?'disabled':''}>+</button></div>`:''}
+  </div>`;
+}
+function renderWho(){
+  const s=curSess();if(!s){$('who').innerHTML='';return;}const names=[...PEOPLE,...S.extra.filter(n=>!PEOPLE.includes(n))];
+  for(const o of orders(s.id)) if(!names.includes(o.name)) names.push(o.name);
+  const typed=$('newname')?$('newname').value:'';
+  $('who').innerHTML=names.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${S.sel.includes(n)}" ${s.open?'':'disabled'}>${esc(n)}${existing(s.id,n)?'<span class="ok">담음</span>':''}</button>`).join('')+
+    (s.open?`<div class="other"><input type="text" id="newname" placeholder="다른 이름" maxlength="20" autocomplete="off"><button type="button" id="addname">추가</button></div>`:'');
+  if($('newname')){$('newname').value=typed;$('addname').onclick=()=>{const n=$('newname').value.trim();if(!n)return;if(!PEOPLE.includes(n)&&!S.extra.includes(n)){S.extra.push(n);lsSet(LS.extra,S.extra);}$('newname').value='';if(!S.sel.includes(n))pick(n);};}
+}
+function renderCur(){
+  const c=$('cur');if(!S.sel.length){c.hidden=true;return;}c.hidden=false;
+  const tot=n=>Object.values(S.drafts[n].items).reduce((a,b)=>a+b,0);
+  c.innerHTML=`<div class="editing"><b>${esc(S.cur)}</b> 메뉴 고르는 중${S.sel.length>1?' · 이름을 눌러 바꿔요':''}</div>`+
+    (S.sel.length>1?`<div class="row">${S.sel.map(n=>`<button type="button" data-cur="${esc(n)}" aria-current="${n===S.cur}">${esc(n)}<small>${tot(n)}</small></button>`).join('')}</div>`:'');
+}
+function renderForm(){
+  const s=curSess(),rest=viewRest(),d=draft(),act=ordering(),locked=!act||!s.open;
+  $('closedmsg').hidden=!act||s.open;
+  $('formarea').style.opacity=!act||(d&&!locked)?1:.5;
+  let h='';const lastOpt=[...rest.groups].reverse().find(g=>g.opt);
+  for(const g of rest.groups){
+    h+=`<h2>${esc(g.ko)} <small>${esc(g.vi)}</small></h2><div class="list">${rest.items.filter(m=>m.g===g.id).map(m=>itemRow(rest,m,locked)).join('')}</div>`;
+    if(g.opt&&act&&g===lastOpt) h+=`<div class="opts"><label class="chip"><input type="checkbox" id="opt-nc" ${d&&d.nc?'checked':''} ${d&&!locked?'':'disabled'}>${OPT.ko}<small>반미·쌀국수 모두 · ${OPT.vi}</small></label></div>`;
+  }
+  $('formarea').innerHTML=h;
+}
+function renderBar(){
+  const s=curSess();if(!s||!ordering())return;const rest=REST[s.rest];
+  const ds=S.sel.map(n=>[n,S.drafts[n]]).filter(([,d])=>Object.keys(d.items).length);
+  const cnt=ds.reduce((a,[,d])=>a+Object.values(d.items).reduce((x,y)=>x+y,0),0);
+  const price=ds.reduce((a,[,d])=>a+priceOf(rest,d.items),0);
+  $('barsum').innerHTML=!s.open?'<b>마감</b>이 주문은 닫혀 있어요':!S.sel.length?'<b>이름부터</b>누구 건지 먼저 골라 주세요':
+    cnt?`<b>${cnt}개 · ${vnd(price)}</b>${ds.map(([n])=>esc(n)).join(', ')}`:'<b>0개</b>메뉴를 골라 주세요';
+  $('submit').disabled=!cnt||!s.open;
+  const upd=ds.some(([n])=>existing(s.id,n));
+  $('submit').textContent=(ds.length>1?`${ds.length}명 `:'')+(upd?'저장':'담기');
+}
+function renderOrder(){if(!RESTOS.length)return;renderWho();renderCur();renderForm();renderBar();}
+function pick(n){
+  const s=curSess();
+  if(S.sel.includes(n)){S.sel=S.sel.filter(x=>x!==n);delete S.drafts[n];if(S.cur===n)S.cur=S.sel[S.sel.length-1]||null;}
+  else{const ex=existing(s.id,n);S.drafts[n]=ex?{items:{...ex.items},nc:ex.nc}:{items:{},nc:false};S.sel.push(n);S.cur=n;if(ex)toast(`${n}님이 담았던 메뉴를 불러왔어요`);}
+  renderOrder();
+}
+$('who').addEventListener('click',e=>{const b=e.target.closest('button[data-n]');if(b&&!b.disabled)pick(b.dataset.n);});
+$('cur').addEventListener('click',e=>{const b=e.target.closest('button[data-cur]');if(!b)return;S.cur=b.dataset.cur;renderCur();renderForm();});
+$('formarea').addEventListener('click',e=>{
+  const b=e.target.closest('.step button');if(!b||b.disabled)return;
+  const d=draft();if(!d)return;const id=b.closest('.item').dataset.id;
+  const n=Math.max(0,Math.min(20,(d.items[id]||0)+(b.classList.contains('plus')?1:-1)));
+  if(n)d.items[id]=n;else delete d.items[id];
+  const rest=viewRest();b.closest('.item').outerHTML=itemRow(rest,rest.by[id],false);
+  renderCur();renderBar();
+});
+$('formarea').addEventListener('change',e=>{if(e.target.id==='opt-nc'){const d=draft();if(d)d.nc=e.target.checked;}});
+
+$('submit').addEventListener('click',async()=>{
+  const s=curSess();if(!s||!s.open||!ordering())return;
+  const list=S.sel.map(n=>{const d=S.drafts[n];const ex=existing(s.id,n);return cleanOrder({session:s.id,name:n,items:d.items,nc:d.nc,at:ex?ex.at:Date.now()});}).filter(Boolean);
+  if(!list.length)return;
+  $('submit').disabled=true;
+  const res=[];for(const o of list) res.push({o,where:await saveOrder(o)});
+  S.lastSent=res;S.sel=[];S.cur=null;S.drafts={};
+  renderAll();renderOrder();window.scrollTo({top:0,behavior:'smooth'});
+  const names=list.map(o=>o.name).join(', ');
+  toast(res.every(r=>r.where==='shared')?`${names} 담았어요`:'저장하지 못한 사람이 있어요');
+});
+function renderAfter(){
+  const box=$('after');if(!S.lastSent||!ordering()){box.innerHTML='';return;}
+  const bad=S.lastSent.filter(r=>r.where==='fail').map(r=>r.o.name),ok=S.lastSent.filter(r=>r.where==='shared').map(r=>r.o.name);
+  let h='';
+  if(ok.length) h+=`<div class="notice">${esc(ok.join(', '))} 메뉴가 주문서에 들어갔어요.</div>`;
+  if(bad.length) h+=`<div class="notice warn">${esc(bad.join(', '))} 메뉴를 저장하지 못했어요. 주문이 마감됐거나 인터넷이 끊겼을 수 있어요. 다시 담아 주세요.</div>`;
+  box.innerHTML=h;
+}
+
+/* ---------- summary tab ---------- */
+function renderSum(){
+  const s=curSess(),rest=REST[s.rest],os=orders(s.id);
+  const ctl=`<div class="sctl"><span class="hintline">${os.length}명 담음</span></div>`;
+  if(!os.length){$('sumbody').innerHTML=ctl+`<div class="empty">아직 담은 사람이 없어요.<br>'메뉴 고르기' 탭에서 이름을 누르고 메뉴를 담아 주세요.</div>`;return;}
+  const {q,nc}=totals(rest,os);
+  const ids=rest.items.map(m=>m.id).filter(id=>q[id]);
+  const total=ids.reduce((a,id)=>a+q[id]*rest.by[id].p,0),cnt=ids.reduce((a,id)=>a+q[id],0);
+  const rows=ids.map(id=>{const m=rest.by[id];return `<tr><td class="q">${q[id]}</td><td><div>${esc(m.ko)}</div><div class="vi">${esc(m.vi)}</div>${nc[id]?`<div class="op">고수 빼기 ${nc[id]}</div>`:''}</td><td class="p">${vnd(m.p*q[id])}</td></tr>`;}).join('');
+  const vt=vnTicket(s,os);
+  const ppl=os.map(o=>{const its=Object.entries(o.items).map(([k,v])=>`${rest.by[k].ko} ${v}`).join(', ');const k=orderId(o);const ask=S.delAsk===k;const can=!!ACTIVE&&ACTIVE.open;
+    return `<div class="person" data-k="${k}"><div class="top"><div><span class="nm">${esc(o.name)}</span></div>
+      <div class="acts">${ask?'<button type="button" class="del" data-a="del-yes">지우기 확인</button><button type="button" data-a="del-no">취소</button>':(can&&s.open?'<button type="button" data-a="edit">수정</button>':'')+(can?'<button type="button" class="del" data-a="del">삭제</button>':'')}</div></div>
+      <div class="it">${esc(its)} · ${vnd(priceOf(rest,o.items))}</div>${o.nc?'<div class="op">고수 빼기</div>':''}</div>`;}).join('');
+  $('sumbody').innerHTML=ctl+`
+    <div class="ticket"><div class="head"><div><div class="lab">합계 · ${os.length}명 · ${cnt}개</div><div class="total">${vnd(total)}</div></div>
+      <div class="hintline" style="text-align:right">약 ${won(Math.round(total*0.055/100)*100)}원</div></div>
+      <table class="tot">${rows}</table></div>
+    <div class="vn"><span class="lab">${s.how==='del'?'배달 앱에서 담을 목록':'직원에게 보여 줄 주문서'}</span>
+      <pre id="vntxt">${esc(vt)}</pre><div class="row"><button class="btn small" type="button" id="copyvn">복사</button></div></div>
+    <h2>사람별 <small>누가 뭘 골랐는지</small></h2><div class="people" id="people">${ppl}</div>`;
+  $('copyvn').onclick=()=>copy(vt,'vntxt');
+  $('people').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;const k=b.closest('.person').dataset.k;const o=orders(s.id).find(x=>orderId(x)===k);if(!o)return;
+    const a=b.dataset.a;
+    if(a==='edit'){S.sel=[o.name];S.cur=o.name;S.drafts={[o.name]:{items:{...o.items},nc:o.nc}};if(!PEOPLE.includes(o.name)&&!S.extra.includes(o.name))S.extra.push(o.name);showTab('order');renderOrder();window.scrollTo({top:0,behavior:'smooth'});}
+    else if(a==='del'){S.delAsk=k;renderSum();}else if(a==='del-no'){S.delAsk=null;renderSum();}else if(a==='del-yes'){S.delAsk=null;deleteOrder(o);}};
+}
+/* ---------- misc ---------- */
+function showTab(t){if(!ordering())t='order';const o=t==='order';$('tab-order').setAttribute('aria-selected',o);$('tab-sum').setAttribute('aria-selected',!o);$('p-order').hidden=!o;$('p-sum').hidden=o;$('bar').hidden=!o||!ordering();if(!o)renderSum();}
+$('tab-order').onclick=()=>showTab('order');$('tab-sum').onclick=()=>showTab('sum');
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600);}
+async function copy(text,preId){try{await navigator.clipboard.writeText(text);toast('복사했어요');}catch(e){const el=$(preId);if(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);}toast('글자를 길게 눌러 복사해 주세요');}}
+function setStatus(){
+  const el=$('status');el.className='status '+(S.mode==='live'?'live':S.mode==='pending'?'':'local');
+  el.querySelector('span').textContent=S.mode==='pending'?'불러오는 중…':S.mode==='live'?'모두의 주문이 실시간으로 모여요':'연결이 끊겼어요 · 새로고침해 주세요';
+}
+function renderAll(){if(!RESTOS.length){$('shead').innerHTML='<div class="rn">메뉴를 불러오지 못했어요</div><div class="pl">인터넷 연결을 확인하고 새로고침해 주세요.</div>';$('tabs').hidden=true;$('p-order').hidden=true;$('bar').hidden=true;return;}$('p-order').hidden=!$('p-sum').hidden?true:false;renderSess();renderHead();renderWho();renderBar();renderAfter();const n=ACTIVE?orders(ACTIVE.id).length:0;$('tabn').textContent=n?n+'명':'';if(!$('p-sum').hidden&&ordering())renderSum();}
+
+async function loadMenu(){
+  const [r,m,im,a]=await Promise.all([sb.from('restaurants').select('*').order('sort'),sb.from('menu_items').select('*').order('sort'),sb.from('images').select('*'),sb.from('active').select('*').eq('id',1).maybeSingle()]);
+  if(r.error||m.error||im.error) throw (r.error||m.error||im.error);
+  IMGS=Object.fromEntries((im.data||[]).map(x=>[x.id,x.data.replace(/^data:image\/webp;base64,/,'')]));
+  RESTOS=(r.data||[]).map(x=>({...x,items:(m.data||[]).filter(i=>i.rest_id===x.id).map(i=>({...i,no:i.no||undefined,tag:i.tag||undefined,img:i.img||undefined}))}));
+  REST=Object.fromEntries(RESTOS.map(x=>[x.id,{...x,by:Object.fromEntries(x.items.map(i=>[i.id,i]))}]));
+  setActive(a.data);
+}
+function setActive(row){
+  ACTIVE=row&&row.session_id&&REST[row.rest_id]?cleanSession({date:row.date,meal:row.meal,rest:row.rest_id,how:row.how,open:row.open,at:1}):null;
+  if(ACTIVE&&ACTIVE.id!==row.session_id) ACTIVE.id=row.session_id;
+}
+async function loadOrders(){
+  if(!ACTIVE){S.shared.orders=[];return;}
+  const {data,error}=await sb.from('orders').select('*').eq('session',ACTIVE.id);
+  if(error) throw error;
+  S.shared.orders=(data||[]).map(x=>cleanOrder({...x,at:Date.parse(x.at)})).filter(Boolean);
+}
+(async()=>{
+  try{await loadMenu();await loadOrders();S.mode='live';}
+  catch(e){console.error(e);S.mode='down';}
+  setStatus();renderAll();renderOrder();
+  sb.channel('live').on('postgres_changes',{event:'*',schema:'public',table:'orders'},p=>{
+    if(p.eventType==='DELETE'){S.shared.orders=S.shared.orders.filter(x=>orderId(x)!==p.old.id);}
+    else{const o=cleanOrder({...p.new,at:Date.parse(p.new.at)});if(o&&ACTIVE&&o.session===ACTIVE.id)upsertLocal(o);}
+    renderAll();
+  }).on('postgres_changes',{event:'*',schema:'public',table:'active'},async p=>{
+    const prev=ACTIVE&&ACTIVE.id;setActive(p.new);if((ACTIVE&&ACTIVE.id)!==prev){S.sel=[];S.cur=null;S.drafts={};await loadOrders().catch(()=>{});}
+    renderAll();renderOrder();
+  }).subscribe(st=>{if(st==='SUBSCRIBED'&&S.mode!=='down'){S.mode='live';setStatus();}if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){S.mode='down';setStatus();}});
+  document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'){try{await loadOrders();renderAll();}catch(e){}}});
+})();
+</script>
+</body>
+</html>
